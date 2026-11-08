@@ -1,0 +1,5 @@
+pdfplumber>=0.11.9,<0.12
+openpyxl>=3.1.5,<3.2
+streamlit>=1.65,<1.66
+openai>=2.54,<3
+langgraph>=1.2,<2
