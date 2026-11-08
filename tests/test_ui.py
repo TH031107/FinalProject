@@ -135,17 +135,22 @@ class UITests(unittest.TestCase):
 
     def test_chat_key_gating_and_history_passed_to_backend(self):
         from unittest.mock import AsyncMock
-        from academy.chat import ChatReply
+        from academy.chat import ChatReply,StepRecord
         self.valid_files();at=self.app()
         at.button(key='analyze').click().run()
         self.assertTrue(at.chat_input[0].disabled)
         at.text_input(key='runtime_api_key').set_value('synthetic-test-key').run()
         self.assertFalse(at.chat_input[0].disabled)
-        handler=AsyncMock(return_value=ChatReply('합성 테스트 응답',.01,'ok'))
+        handler=AsyncMock(return_value=ChatReply('합성 테스트 응답',.01,'ok',
+            steps=(StepRecord('model_route',.005,'ok','synthetic-model',
+                              {'input_tokens':20,'output_tokens':15,'reasoning_tokens':5}),)))
         with patch('academy.chat.ask',handler):
             at.chat_input[0].set_value('평균은?').run()
             self.assertFalse(at.exception)
             self.assertEqual(len(at.session_state['messages']),2)
+            trace=at.dataframe[-1].value
+            self.assertEqual(trace.loc[0,'reasoning_tokens'],5)
+            self.assertEqual(trace.loc[0,'output_tokens'],15)
             at.chat_input[0].set_value('중앙값도?').run()
             self.assertFalse(at.exception)
             self.assertEqual(len(handler.call_args.args[2]),2)

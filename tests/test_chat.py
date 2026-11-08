@@ -105,15 +105,22 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
         def respond(request):
             body=json.loads(request.content);requests.append(body)
             return httpx.Response(200,json={'id':'resp_synthetic','object':'response','created_at':0,
-                'model':body['model'],'status':'completed','output':[{'id':'msg_synthetic','type':'message',
+                'model':body['model'],'status':'completed',
+                'usage':{'input_tokens':20,'output_tokens':15,'total_tokens':35,
+                         'input_tokens_details':{'cached_tokens':0,'cache_write_tokens':0},
+                         'output_tokens_details':{'reasoning_tokens':5}},
+                'output':[{'id':'msg_synthetic','type':'message',
                 'role':'assistant','status':'completed','content':[{'type':'output_text','annotations':[],
                 'text':json.dumps({'tasks':[task('statistics')]})}]}]})
         def client(**kwargs):
             self.assertEqual(kwargs['max_retries'],0)
             return actual_client(**kwargs,http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)))
         with patch('openai.AsyncOpenAI',side_effect=client):
-            result=await OpenAIBackend('synthetic-test-key').complete('route',{'question':'통계'},Plan)
+            backend=OpenAIBackend('synthetic-test-key')
+            result=await backend.complete('route',{'question':'통계'},Plan)
         self.assertEqual(result.tasks[0].action,'statistics')
+        self.assertEqual(backend.last_usage,{'input_tokens':20,'output_tokens':15,
+                                          'total_tokens':35,'reasoning_tokens':5})
         self.assertFalse(requests[0]['store'])
         self.assertEqual(requests[0]['text']['format']['type'],'json_schema')
         self.assertEqual(requests[0]['model'],'gpt-6.1-sol')

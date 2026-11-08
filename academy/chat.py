@@ -108,6 +108,9 @@ class OpenAIBackend:
             max_output_tokens=3500 if kind=='generate' else 1200,store=False)
         usage=response.usage
         self.last_usage={k:getattr(usage,k,None) for k in ('input_tokens','output_tokens','total_tokens')} if usage else {}
+        if usage:
+            details=getattr(usage,'output_tokens_details',None)
+            self.last_usage['reasoning_tokens']=getattr(details,'reasoning_tokens',None)
         if response.output_parsed is None:
             raise ValueError('모델 구조화 응답 없음')
         return schema.model_validate(response.output_parsed)

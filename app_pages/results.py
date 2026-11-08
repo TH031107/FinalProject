@@ -81,7 +81,11 @@ if prompt:
         st.session_state['chat_diagnostics']=diagnostics
         with st.expander('이번 답변 처리 내역'):
             st.caption('시간 초과·일부 실패는 정상 답변 완료로 보지 않습니다. 단계 시간과 모델 호출 시간은 겹치므로 합산하지 않습니다.')
-            st.dataframe(diagnostics['steps'],hide_index=True,alt='단계별 시간·선택 모델·처리 상태',
-                         column_order=['stage','seconds','status','model'])
+            rows=[{**step, **{name:step['usage'].get(name) for name in
+                             ('input_tokens','output_tokens','reasoning_tokens')}}
+                  for step in diagnostics['steps']]
+            st.caption('output_tokens에는 reasoning_tokens가 포함됩니다. 취소된 호출은 사용량을 받지 못할 수 있습니다. 토큰 수만으로 지연 원인이나 정확도를 확정할 수 없습니다.')
+            st.dataframe(rows,hide_index=True,alt='단계별 시간·선택 모델·처리 상태·토큰 사용량',
+                         column_order=['stage','seconds','status','model','input_tokens','output_tokens','reasoning_tokens'])
     messages.extend([{'role':'user','content':prompt},{'role':'assistant','content':reply.text}])
     st.session_state['messages']=messages[-24:]
