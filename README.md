@@ -6,7 +6,7 @@
 - 이름: 이태한
 - 배포 URL: **아직 미배포 — 배포 완료 후 실제 URL 기재 필요**
 - 제출 저장소: https://github.com/TH031107/FinalProject
-- 평가자 초대: `jaypakdevkr` 초대 여부는 별도 확인 필요
+- 평가자 초대: `jaypakdevkr` 공동작업자 초대 발송 완료(사용자 확인, 수락 여부 별도)
 - 서비스 유지 조건: 2026년 11월 11일 23:59까지
 
 이 저장소는 과제 제출·배포용입니다. 기존 개발·학습 기록은 [portfolio](https://github.com/TH031107/portfolio)와 [부트캠프 Wiki](https://github.com/TH031107/portfolio/blob/main/docs/activities-wiki/activities/bootcamp/Projects.md)에 보존합니다.
