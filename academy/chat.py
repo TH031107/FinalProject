@@ -101,10 +101,13 @@ class OpenAIBackend:
         content=[{'type':'input_text','text':json.dumps(payload,ensure_ascii=False)}]
         content += [{'type':'input_image','image_url':im} for im in images]
         self.last_usage={}
+        # 일반 생성만 추론 예산을 줄인다. 복잡한 생성과 독립 검수는 medium을 유지한다.
+        effort='low' if kind=='route' else (
+            self.policy.generation_effort if kind=='generate' and not complex else 'medium')
         response=await self._client.responses.parse(
             model=self.selected_model(complex),instructions=COMMON+'\n'+STAGES[kind],
             input=[{'role':'user','content':content}],text_format=schema,
-            reasoning={'effort':'medium' if kind!='route' else 'low'},
+            reasoning={'effort':effort},
             max_output_tokens=3500 if kind=='generate' else 1200,store=False)
         usage=response.usage
         self.last_usage={k:getattr(usage,k,None) for k in ('input_tokens','output_tokens','total_tokens')} if usage else {}

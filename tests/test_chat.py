@@ -125,6 +125,41 @@ class ChatTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(requests[0]['text']['format']['type'],'json_schema')
         self.assertEqual(requests[0]['model'],'gpt-6.1-sol')
 
+    async def test_sdk_stage_reasoning_policy_keeps_independent_review(self):
+        import json,httpx,openai
+        from unittest.mock import patch
+        from academy.chat import OpenAIBackend
+        from academy.config import ModelPolicy
+        requests=[]
+        actual_client=openai.AsyncOpenAI
+        fixture=FakeBackend([task('generate')])
+        outputs={kind:(await fixture.complete(kind,{},schema)).model_dump()
+                 for kind,schema in [('route',Plan),('generate',Exercise),('review',Review)]}
+        def respond(request):
+            body=json.loads(request.content);requests.append(body)
+            schema_name=body['text']['format']['name']
+            value=outputs[{'Plan':'route','Exercise':'generate','Review':'review'}[schema_name]]
+            return httpx.Response(200,json={'id':'resp_synthetic','object':'response','created_at':0,
+                'model':body['model'],'status':'completed','output':[{'id':'msg_synthetic','type':'message',
+                'role':'assistant','status':'completed','content':[{'type':'output_text','annotations':[],
+                'text':json.dumps(value)}]}]})
+        def client(**kwargs):
+            return actual_client(**kwargs,http_client=httpx.AsyncClient(transport=httpx.MockTransport(respond)))
+        with patch('openai.AsyncOpenAI',side_effect=client):
+            backend=OpenAIBackend('synthetic-test-key')
+            async with backend.request_session():
+                for kind,schema,complex in [('route',Plan,False),('generate',Exercise,False),
+                                            ('review',Review,False),('generate',Exercise,True),
+                                            ('review',Review,True)]:
+                    await backend.complete(kind,{},schema,complex=complex)
+            await OpenAIBackend('synthetic-test-key',ModelPolicy(generation_effort='medium')).complete(
+                'generate',{},Exercise)
+        self.assertEqual([r['reasoning']['effort'] for r in requests],
+                         ['low','low','medium','medium','medium','medium'])
+        self.assertEqual([r['model'] for r in requests[:5]],
+                         ['gpt-6.1-sol']*3+['gpt-6-astra']*2)
+        self.assertTrue(all(r['store'] is False for r in requests))
+
     async def test_duplicate_choices_are_hidden_before_review(self):
         class Duplicates(FakeBackend):
             async def complete(self,kind,payload,schema,**kwargs):

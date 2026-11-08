@@ -16,6 +16,7 @@ class ModelPolicy:
     primary: str = "gpt-6.1-sol"
     complex: str = "gpt-6-astra"
     deadline_seconds: float = 18.0
+    generation_effort: str = "low"
 
     def __post_init__(self):
         allowed = {"gpt-6.1-sol", "gpt-6-astra"}
@@ -23,6 +24,8 @@ class ModelPolicy:
             raise ValueError("검토한 정확도 중심 모델 후보만 지정할 수 있습니다.")
         if not 0 < self.deadline_seconds < 20:
             raise ValueError("내부 시간 한도는 평가 제한인 20초보다 작아야 합니다.")
+        if self.generation_effort not in {"low", "medium", "high"}:
+            raise ValueError("생성 추론 강도는 low/medium/high 중 하나여야 합니다.")
 
 
 @dataclass(frozen=True)
